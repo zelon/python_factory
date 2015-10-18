@@ -3,6 +3,7 @@
 import glob
 import os
 import shutil
+import stat
 import time
 from types import *
 
@@ -62,16 +63,22 @@ class DeleteOld:
         print("Delete %s" % filename)
 
         if os.path.isdir(filename):
-            shutil.rmtree(filename, ignore_errors=True, onerror=DeleteOld.on_remove_error)
+            shutil.rmtree(filename, ignore_errors=False, onerror=DeleteOld.on_remove_error)
         else:
+            os.chmod(filename, stat.S_IWRITE)
             os.remove(filename)
 
     @staticmethod
-    def on_remove_error(_, path):
-        print("Cannot remove %s" % path)
+    def on_remove_error(_, path, exc_info):
+        os.chmod(path, stat.S_IWRITE)
+        os.unlink(path)
+
+        if os.path.exists(path):
+            print("Cannot remove %s" % path)
 
     def do(self):
         files = self.get_filelist()
+        print("collected count:%d" % len(files))
         filelist_with_elapsed_time = DeleteOld.attach_elapsed_time_to_filelist(files)
         filelist_with_elapsed_time.sort(key=DeleteOld.sort_tuple_by_first)
         target_filelist = self.remove_keep_count(filelist_with_elapsed_time)
