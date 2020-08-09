@@ -4,6 +4,7 @@ import glob
 import os
 import shutil
 import stat
+import sys
 import time
 from types import *
 
@@ -93,8 +94,6 @@ def print_usage():
     print("usage: %s directory old_days keep_count" % os.path.basename(sys.argv[0]))
 
 def main():
-    import sys
-
     if len(sys.argv) != 4:
         print_usage()
         return
