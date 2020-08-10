@@ -1,5 +1,6 @@
 # tested on python2.7
 
+import argparse
 import glob
 import os
 import shutil
@@ -72,6 +73,15 @@ class OldFileCollector:
         return target_filename_list
 
 
+class Lister:
+    def __init__(self):
+        pass
+
+    def do(self, target_filename_list):
+        for filename in target_filename_list:
+            print(filename)
+
+
 class Deleter:
     def __init__(self):
         pass
@@ -130,49 +140,58 @@ def print_usage():
     print("usage: %s directory old_days keep_count [delete|move] [move_destination_directory]" % os.path.basename(sys.argv[0]))
 
 def main():
-    if len(sys.argv) < 5:
-        print_usage()
+    command_parser = argparse.ArgumentParser(description="find old files and operate")
+
+    command_parser.add_argument('--check_directory', default='.', help='check directory')
+    command_parser.add_argument('--before_days', type=int, default=30, help='target days to be old')
+    command_parser.add_argument('--min_keep_count', type=int, default=30, help='minimum keep count')
+    command_parser.add_argument('--exclude', nargs='*', help='exclude name')
+    command_parser.add_argument('--move_destination_directory', help='move destination directory')
+    command_parser.add_argument('command', choices=['list', 'delete', 'move'])
+
+    args = command_parser.parse_args()
+
+    check_directory = args.check_directory
+    old_days = args.before_days
+    keep_count = args.min_keep_count
+    exclude_names = args.exclude
+    move_destination_directory = args.move_destination_directory
+    operation_type = args.command
+
+    if operation_type == "move" and move_destination_directory is None:
+        command_parser.print_help()
         return
 
-    target_directory = os.path.abspath(sys.argv[1])
-    old_days = int(sys.argv[2])
-    keep_count = int(sys.argv[3])
-    operation_type = sys.argv[4]
-
-    if operation_type != "delete" and operation_type != "move":
-        print_usage()
-        return
-
-    move_destination_directory = ""
-    if operation_type == "move":
-        move_destination_directory = sys.argv[5]
-
-    print("Target directory: " + target_directory)
+    print("Check directory: " + check_directory)
     print("Old days: " + str(old_days))
     print("Keep count: " + str(keep_count))
     print("OperationType: " + operation_type)
+    for exclude_name in exclude_names:
+        print("exclude_name: " + exclude_name)
     if operation_type == "move":
         print("MoveDestinationDirectory: " + move_destination_directory)
 
-    if not os.path.exists(target_directory):
-        print("not exist directory")
+    if not os.path.exists(check_directory):
+        print("not exist directory: " + check_directory)
         return
 
     if old_days < 0:
-        print("old_days is less than 0")
+        print("old_days is less than 0.old_days: {0}".format(old_days))
         return
 
     if keep_count < 0:
-        print("keep_count is less than zero")
+        print("keep_count is less than zero,keep_count: {0}".format(keep_count))
         return
 
-    old_file_collector = OldFileCollector(target_directory, old_days, keep_count)
+    old_file_collector = OldFileCollector(check_directory, old_days, keep_count)
     target_filenames = old_file_collector.collect()
     operator = None
     if operation_type == "delete":
         operator = Deleter()
     elif operation_type == "move":
         operator = Mover(move_destination_directory)
+    elif operation_type == "list":
+        operator = Lister()
     else:
         print("operation type error")
         return
